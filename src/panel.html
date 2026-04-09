@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSniff</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: #252836;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-mid: #94a3b8;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .logo-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* ── Selection Bar ── */
+  .selection-bar {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .selection-label {
+    color: var(--text-dim);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .selection-text {
+    color: var(--accent3);
+    font-size: 11px;
+    max-height: 36px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 8px;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 4px;
+    font-family: var(--mono);
+  }
+
+  .selection-empty {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 10px;
+    padding: 4px 0;
+  }
+
+  /* ── Stats Bar ── */
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .stat-num {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  .stat-badge {
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .badge-match { background: rgba(0,229,255,0.12); color: var(--accent); }
+  .badge-total { background: rgba(124,58,237,0.12); color: #a78bfa; }
+
+  /* ── Filter Tabs ── */
+  .filter-row {
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .filter-tab {
+    padding: 5px 10px;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    background: transparent;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+    position: relative;
+  }
+
+  .filter-tab.active {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--accent);
+    border-bottom-color: var(--bg);
+  }
+
+  .filter-tab:hover:not(.active) {
+    color: var(--text);
+  }
+
+  /* ── Search ── */
+  .search-row {
+    padding: 8px 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent2);
+  }
+
+  .search-input::placeholder {
+    color: var(--text-dim);
+  }
+
+  /* ── Request List ── */
+  .request-list {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  .request-list::-webkit-scrollbar { width: 4px; }
+  .request-list::-webkit-scrollbar-track { background: transparent; }
+  .request-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .request-item {
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(37, 40, 54, 0.6);
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+  }
+
+  .request-item:hover {
+    background: var(--surface);
+  }
+
+  .request-item.matched {
+    border-left: 2px solid var(--accent);
+    background: rgba(0, 229, 255, 0.04);
+  }
+
+  .request-item.matched:hover {
+    background: rgba(0, 229, 255, 0.08);
+  }
+
+  .request-item.selected-item {
+    background: rgba(124, 58, 237, 0.1);
+    border-left: 2px solid var(--accent2);
+  }
+
+  .req-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+  }
+
+  .req-method {
+    font-weight: 700;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .method-GET { background: rgba(16,185,129,0.15); color: #34d399; }
+  .method-POST { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .method-PUT { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .method-DELETE { background: rgba(239,68,68,0.15); color: #f87171; }
+  .method-PATCH { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .method-OTHER { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+  .req-status {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .status-2xx { background: rgba(16,185,129,0.15); color: #34d399; }
+  .status-3xx { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .status-4xx { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .status-5xx { background: rgba(239,68,68,0.15); color: #f87171; }
+  .status-0   { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+  .req-type {
+    font-size: 9px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .match-badge {
+    margin-left: auto;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .match-content { background: rgba(0,229,255,0.12); color: var(--accent); }
+  .match-time { background: rgba(245,158,11,0.12); color: var(--accent3); }
+  .match-both { background: rgba(124,58,237,0.15); color: #a78bfa; }
+
+  .req-url {
+    color: var(--text-mid);
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .req-url .url-path {
+    color: var(--text);
+  }
+
+  .req-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  /* ── Detail Panel ── */
+  .detail-panel {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    display: none;
+  }
+
+  .detail-panel.visible {
+    display: block;
+  }
+
+  .detail-panel::-webkit-scrollbar { width: 4px; }
+  .detail-panel::-webkit-scrollbar-track { background: transparent; }
+  .detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .detail-header {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .detail-back {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .detail-back:hover { color: var(--text); }
+
+  .detail-title {
+    font-size: 10px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .detail-section {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-section-title {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .detail-kv {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .detail-row {
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+  }
+
+  .detail-key {
+    color: var(--text-dim);
+    flex-shrink: 0;
+    min-width: 90px;
+  }
+
+  .detail-val {
+    color: var(--text);
+    word-break: break-all;
+    flex: 1;
+  }
+
+  .detail-val.highlight {
+    background: rgba(0,229,255,0.1);
+    border-radius: 2px;
+    padding: 0 3px;
+    color: var(--accent);
+  }
+
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 10px;
+    color: var(--text-mid);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.5;
+  }
+
+  .code-block .highlight-text {
+    background: rgba(245, 158, 11, 0.3);
+    color: var(--accent3);
+    border-radius: 2px;
+  }
+
+  /* ── Match Highlight in snippets ── */
+  mark {
+    background: rgba(0, 229, 255, 0.2);
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 160px;
+    color: var(--text-dim);
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .empty-icon { font-size: 28px; opacity: 0.4; }
+
+  /* ── Scrollable list / detail split ── */
+  .main-area {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .copy-btn {
+    font-size: 9px;
+    padding: 2px 7px;
+    margin-left: auto;
+    cursor: pointer;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 3px;
+    font-family: var(--mono);
+  }
+
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .recording-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: pulse 1s infinite;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    NetSniff
+  </div>
+  <div class="header-actions">
+    <div class="recording-dot" title="正在记录请求"></div>
+    <button class="btn" id="btn-refresh" title="刷新匹配">⟳ 匹配</button>
+    <button class="btn danger" id="btn-clear" title="清空记录">✕ 清空</button>
+  </div>
+</div>
+
+<!-- Selection Bar -->
+<div class="selection-bar">
+  <div class="selection-label">当前选中内容</div>
+  <div class="selection-text selection-empty" id="selection-display">在页面上选中文本...</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-badge badge-match" id="match-count">0</span>
+    <span>匹配</span>
+  </div>
+  <div class="stat">
+    <span class="stat-badge badge-total" id="total-count">0</span>
+    <span>总请求</span>
+  </div>
+  <div class="stat" id="time-range-stat" style="display:none">
+    <span style="color: var(--accent3)">⏱</span>
+    <span id="time-range-text"></span>
+  </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-row">
+  <button class="filter-tab active" data-filter="all">全部</button>
+  <button class="filter-tab" data-filter="matched">仅匹配</button>
+  <button class="filter-tab" data-filter="fetch">Fetch</button>
+  <button class="filter-tab" data-filter="xhr">XHR</button>
+</div>
+
+<!-- Search -->
+<div class="search-row">
+  <input class="search-input" id="url-search" placeholder="过滤 URL..." />
+</div>
+
+<!-- Main Area -->
+<div class="main-area">
+  <div class="request-list" id="request-list"></div>
+  <div class="detail-panel" id="detail-panel"></div>
+</div>
+
+<script src="panel.js"></script>
+</body>
+</html>
